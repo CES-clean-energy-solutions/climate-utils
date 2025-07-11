@@ -1,0 +1,17 @@
+# Core dependencies for climate-utils
+pandas>=1.3.0
+numpy>=1.20.0
+python-dateutil>=2.8.0
+ladybug-core>=0.44.19
+psychrolib>=2.5.0
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+
+# Extended dependencies (optional)
+psychrolib>=2.5.0
+pvlib>=0.9.0
