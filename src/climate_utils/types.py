@@ -14,45 +14,45 @@ EPWDataFrame = TypedDict(
     "EPWDataFrame",
     {
         # Basic weather parameters
-        "Year": pd.Series[int],
-        "Month": pd.Series[int],
-        "Day": pd.Series[int],
-        "Hour": pd.Series[int],
-        "Minute": pd.Series[int],
-        "Data Source and Uncertainty Flags": pd.Series[str],
+        "Year": pd.Series,
+        "Month": pd.Series,
+        "Day": pd.Series,
+        "Hour": pd.Series,
+        "Minute": pd.Series,
+        "Data Source and Uncertainty Flags": pd.Series,
         # Temperature and humidity
-        "Dry Bulb Temperature (°C)": pd.Series[float],
-        "Dew Point Temperature (°C)": pd.Series[float],
-        "Relative Humidity (%)": pd.Series[float],
-        "Atmospheric Station Pressure (Pa)": pd.Series[float],
+        "Dry Bulb Temperature (°C)": pd.Series,
+        "Dew Point Temperature (°C)": pd.Series,
+        "Relative Humidity (%)": pd.Series,
+        "Atmospheric Station Pressure (Pa)": pd.Series,
         # Wind data
-        "Wind Direction (°)": pd.Series[float],
-        "Wind Speed (m/s)": pd.Series[float],
+        "Wind Direction (°)": pd.Series,
+        "Wind Speed (m/s)": pd.Series,
         # Solar radiation
-        "Direct Normal Radiation (Wh/m²)": pd.Series[float],
-        "Diffuse Horizontal Radiation (Wh/m²)": pd.Series[float],
-        "Global Horizontal Radiation (Wh/m²)": pd.Series[float],
+        "Direct Normal Radiation (Wh/m²)": pd.Series,
+        "Diffuse Horizontal Radiation (Wh/m²)": pd.Series,
+        "Global Horizontal Radiation (Wh/m²)": pd.Series,
         # Additional parameters
-        "Total Sky Cover (tenths)": pd.Series[float],
-        "Opaque Sky Cover (tenths)": pd.Series[float],
-        "Visibility (km)": pd.Series[float],
-        "Ceiling Height (m)": pd.Series[float],
-        "Present Weather Observation": pd.Series[int],
-        "Present Weather Codes": pd.Series[int],
-        "Precipitable Water (mm)": pd.Series[float],
-        "Aerosol Optical Depth (thousandths)": pd.Series[float],
-        "Snow Depth (cm)": pd.Series[float],
-        "Days Since Last Snowfall": pd.Series[float],
-        "Albedo (unitless)": pd.Series[float],
-        "Liquid Precipitation Depth (mm)": pd.Series[float],
-        "Liquid Precipitation Quantity (hr)": pd.Series[float],
+        "Total Sky Cover (tenths)": pd.Series,
+        "Opaque Sky Cover (tenths)": pd.Series,
+        "Visibility (km)": pd.Series,
+        "Ceiling Height (m)": pd.Series,
+        "Present Weather Observation": pd.Series,
+        "Present Weather Codes": pd.Series,
+        "Precipitable Water (mm)": pd.Series,
+        "Aerosol Optical Depth (thousandths)": pd.Series,
+        "Snow Depth (cm)": pd.Series,
+        "Days Since Last Snowfall": pd.Series,
+        "Albedo (unitless)": pd.Series,
+        "Liquid Precipitation Depth (mm)": pd.Series,
+        "Liquid Precipitation Quantity (hr)": pd.Series,
         # Calculated psychrometric properties
-        "Humidity Ratio (kg/kg)": pd.Series[float],
-        "Enthalpy (kJ/kg)": pd.Series[float],
-        "Wet Bulb Temperature (°C)": pd.Series[float],
-        "Specific Volume (m³/kg)": pd.Series[float],
+        "Humidity Ratio (kg/kg)": pd.Series,
+        "Enthalpy (kJ/kg)": pd.Series,
+        "Wet Bulb Temperature (°C)": pd.Series,
+        "Specific Volume (m³/kg)": pd.Series,
         # Wind direction sectors
-        "Wind Direction Sector": pd.Series[int],
+        "Wind Direction Sector": pd.Series,
     },
 )
 
@@ -114,28 +114,28 @@ REQUIRED_EPW_COLUMNS = {
 EPWDataFrameBasic = TypedDict(
     "EPWDataFrameBasic",
     {
-        "Dry Bulb Temperature (°C)": pd.Series[float],
-        "Relative Humidity (%)": pd.Series[float],
-        "Wind Speed (m/s)": pd.Series[float],
-        "Wind Direction (°)": pd.Series[float],
+        "Dry Bulb Temperature (°C)": pd.Series,
+        "Relative Humidity (%)": pd.Series,
+        "Wind Speed (m/s)": pd.Series,
+        "Wind Direction (°)": pd.Series,
     },
 )
 
 EPWDataFrameSolar = TypedDict(
     "EPWDataFrameSolar",
     {
-        "Direct Normal Radiation (Wh/m²)": pd.Series[float],
-        "Diffuse Horizontal Radiation (Wh/m²)": pd.Series[float],
-        "Global Horizontal Radiation (Wh/m²)": pd.Series[float],
+        "Direct Normal Radiation (Wh/m²)": pd.Series,
+        "Diffuse Horizontal Radiation (Wh/m²)": pd.Series,
+        "Global Horizontal Radiation (Wh/m²)": pd.Series,
     },
 )
 
 EPWDataFramePsychrometric = TypedDict(
     "EPWDataFramePsychrometric",
     {
-        "Dry Bulb Temperature (°C)": pd.Series[float],
-        "Relative Humidity (%)": pd.Series[float],
-        "Atmospheric Station Pressure (Pa)": pd.Series[float],
+        "Dry Bulb Temperature (°C)": pd.Series,
+        "Relative Humidity (%)": pd.Series,
+        "Atmospheric Station Pressure (Pa)": pd.Series,
     },
 )
 
