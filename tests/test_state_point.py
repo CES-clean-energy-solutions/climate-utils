@@ -40,12 +40,12 @@ class TestStatePoint:
         sp = StatePoint(dry_bulb_temp=25.0, relative_humidity=0.6)
 
         # Test all properties exist and are reasonable
-        assert hasattr(sp, 'humidity_ratio')
-        assert hasattr(sp, 'relative_humidity')
-        assert hasattr(sp, 'wet_bulb_temp')
-        assert hasattr(sp, 'dew_point_temp')
-        assert hasattr(sp, 'enthalpy')
-        assert hasattr(sp, 'specific_volume')
+        assert hasattr(sp, "humidity_ratio")
+        assert hasattr(sp, "relative_humidity")
+        assert hasattr(sp, "wet_bulb_temp")
+        assert hasattr(sp, "dew_point_temp")
+        assert hasattr(sp, "enthalpy")
+        assert hasattr(sp, "specific_volume")
 
         # Test property types
         assert isinstance(sp.humidity_ratio, pd.Series)
@@ -59,11 +59,7 @@ class TestStatePoint:
         """Test StatePoint input validation."""
         # Test multiple humidity inputs (should raise error)
         with pytest.raises(ValueError):
-            StatePoint(
-                dry_bulb_temp=25.0,
-                relative_humidity=0.6,
-                humidity_ratio=0.01
-            )
+            StatePoint(dry_bulb_temp=25.0, relative_humidity=0.6, humidity_ratio=0.01)
 
     def test_state_point_to_dataframe(self):
         """Test StatePoint conversion to DataFrame."""
@@ -71,14 +67,14 @@ class TestStatePoint:
         df = sp.to_dataframe()
 
         assert isinstance(df, pd.DataFrame)
-        assert 'dry_bulb_temp' in df.columns
-        assert 'humidity_ratio' in df.columns
-        assert 'relative_humidity' in df.columns
-        assert 'wet_bulb_temp' in df.columns
-        assert 'dew_point_temp' in df.columns
-        assert 'enthalpy' in df.columns
-        assert 'specific_volume' in df.columns
-        assert 'pressure' in df.columns
+        assert "dry_bulb_temp" in df.columns
+        assert "humidity_ratio" in df.columns
+        assert "relative_humidity" in df.columns
+        assert "wet_bulb_temp" in df.columns
+        assert "dew_point_temp" in df.columns
+        assert "enthalpy" in df.columns
+        assert "specific_volume" in df.columns
+        assert "pressure" in df.columns
         assert len(df) == 1
 
     def test_state_point_repr(self):
@@ -87,17 +83,19 @@ class TestStatePoint:
         repr_str = repr(sp)
 
         assert isinstance(repr_str, str)
-        assert 'StatePoint' in repr_str
-        assert '25.0°C' in repr_str
-        assert '60.0%' in repr_str  # 0.6 * 100 = 60%
+        assert "StatePoint" in repr_str
+        assert "25.0°C" in repr_str
+        assert "60.0%" in repr_str  # 0.6 * 100 = 60%
 
     def test_create_state_point_from_epw(self):
         """Test creating StatePoint from EPW data."""
         # Create sample EPW data
-        df_epw = pd.DataFrame({
-            'Dry Bulb Temperature (°C)': [20, 25, 30],
-            'Relative Humidity (%)': [50, 60, 70]  # In percentage
-        })
+        df_epw = pd.DataFrame(
+            {
+                "Dry Bulb Temperature (°C)": [20, 25, 30],
+                "Relative Humidity (%)": [50, 60, 70],  # In percentage
+            }
+        )
 
         sp = create_state_point_from_epw(df_epw)
 
@@ -109,10 +107,12 @@ class TestStatePoint:
     def test_create_state_point_from_epw_alt_names(self):
         """Test creating StatePoint from EPW data with alternative column names."""
         # Test with alternative column names
-        df_epw = pd.DataFrame({
-            'Dry Bulb Temperature (°C)': [20, 25, 30],
-            'Relative Humidity (%)': [50, 60, 70]  # In percentage
-        })
+        df_epw = pd.DataFrame(
+            {
+                "Dry Bulb Temperature (°C)": [20, 25, 30],
+                "Relative Humidity (%)": [50, 60, 70],  # In percentage
+            }
+        )
 
         sp = create_state_point_from_epw(df_epw)
 
@@ -123,17 +123,13 @@ class TestStatePoint:
     def test_create_state_point_from_epw_missing_columns(self):
         """Test creating StatePoint from EPW data with missing columns."""
         # Test with missing temperature column
-        df_epw = pd.DataFrame({
-            'Relative Humidity (%)': [50, 60, 70]
-        })
+        df_epw = pd.DataFrame({"Relative Humidity (%)": [50, 60, 70]})
 
         with pytest.raises(KeyError):
             create_state_point_from_epw(df_epw)
 
         # Test with missing humidity column
-        df_epw = pd.DataFrame({
-            'Dry Bulb Temperature (°C)': [20, 25, 30]
-        })
+        df_epw = pd.DataFrame({"Dry Bulb Temperature (°C)": [20, 25, 30]})
 
         with pytest.raises(KeyError):
             create_state_point_from_epw(df_epw)
@@ -141,11 +137,9 @@ class TestStatePoint:
     def test_state_point_pressure_calculation(self):
         """Test StatePoint pressure calculation from altitude."""
         sp = StatePoint(
-            dry_bulb_temp=25.0,
-            relative_humidity=0.6,
-            altitude=1000.0  # 1000m altitude
+            dry_bulb_temp=25.0, relative_humidity=0.6, altitude=1000.0  # 1000m altitude
         )
 
         # Pressure should be lower at altitude
         assert sp.pressure.iloc[0] < 101325.0  # Sea level pressure
-        assert sp.pressure.iloc[0] > 80000.0   # Reasonable lower bound
+        assert sp.pressure.iloc[0] > 80000.0  # Reasonable lower bound

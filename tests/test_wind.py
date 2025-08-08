@@ -19,7 +19,7 @@ class TestWind:
 
         assert isinstance(adjusted, float)
         assert adjusted > original_speed  # Should be higher at 80m than 10m
-        assert adjusted == pytest.approx(5.0 * (80/10) ** 0.14, rel=1e-6)
+        assert adjusted == pytest.approx(5.0 * (80 / 10) ** 0.14, rel=1e-6)
 
     def test_adjust_wind_speed_series(self):
         """Test wind speed adjustment with pandas Series."""
@@ -42,13 +42,47 @@ class TestWind:
 
     def test_map_wind_direction_16_sectors(self):
         """Test wind direction mapping to 16 sectors."""
-        directions = pd.Series([0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5,
-                               180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5])
+        directions = pd.Series(
+            [
+                0,
+                22.5,
+                45,
+                67.5,
+                90,
+                112.5,
+                135,
+                157.5,
+                180,
+                202.5,
+                225,
+                247.5,
+                270,
+                292.5,
+                315,
+                337.5,
+            ]
+        )
 
         sectors = map_wind_direction_to_sector(directions, 16)
 
-        expected_sectors = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-                           'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+        expected_sectors = [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+        ]
 
         assert isinstance(sectors, pd.Series)
         assert len(sectors) == 16
@@ -60,7 +94,7 @@ class TestWind:
 
         sectors = map_wind_direction_to_sector(directions, 8)
 
-        expected_sectors = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+        expected_sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
         assert isinstance(sectors, pd.Series)
         assert len(sectors) == 8
@@ -72,7 +106,7 @@ class TestWind:
 
         sectors = map_wind_direction_to_sector(directions, 4)
 
-        expected_sectors = ['N', 'E', 'S', 'W']
+        expected_sectors = ["N", "E", "S", "W"]
 
         assert isinstance(sectors, pd.Series)
         assert len(sectors) == 4
@@ -83,12 +117,12 @@ class TestWind:
         # Test 360 degrees (should map to North)
         directions = pd.Series([360])
         sectors = map_wind_direction_to_sector(directions, 16)
-        assert sectors.iloc[0] == 'N'
+        assert sectors.iloc[0] == "N"
 
         # Test negative values
         directions = pd.Series([-45])
         sectors = map_wind_direction_to_sector(directions, 8)
-        assert sectors.iloc[0] == 'NW'
+        assert sectors.iloc[0] == "NW"
 
     def test_map_wind_direction_validation(self):
         """Test wind direction mapping validation."""

@@ -30,12 +30,12 @@ dependencies = [
     "python-dateutil>=2.8.0",
     "ladybug-core>=0.44.19",
     "psychrolib>=2.5.0",
+    "pvlib>=0.9.0",
 ]
 
 [project.optional-dependencies]
 extended = [
     "psychrolib>=2.5.0",
-    "pvlib>=0.9.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -65,7 +65,7 @@ python_classes = "Test*"
 python_functions = "test_*"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

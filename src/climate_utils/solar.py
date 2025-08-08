@@ -9,6 +9,11 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Union
 import math
+from datetime import datetime, timedelta
+
+# Import pvlib for solar position calculations
+import pvlib
+from pvlib import solarposition
 
 
 def get_surface_irradiation_orientations_epw(
@@ -17,7 +22,7 @@ def get_surface_irradiation_orientations_epw(
     albedo: float = 0.2,
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
-    timezone: Optional[int] = None
+    timezone: Optional[int] = None,
 ) -> Dict[str, pd.Series]:
     """
     Calculate surface irradiation for different orientations from EPW data.
@@ -48,9 +53,9 @@ def get_surface_irradiation_orientations_epw(
         orientations = [0, 90, 180, 270]  # N, E, S, W
 
     # Extract radiation data directly using exact column names
-    dni = df_epw['Direct Normal Radiation (Wh/m²)']
-    dhi = df_epw['Diffuse Horizontal Radiation (Wh/m²)']
-    ghi = df_epw['Global Horizontal Radiation (Wh/m²)']
+    dni = df_epw["Direct Normal Radiation (Wh/m²)"]
+    dhi = df_epw["Diffuse Horizontal Radiation (Wh/m²)"]
+    ghi = df_epw["Global Horizontal Radiation (Wh/m²)"]
 
     # Extract site information if not provided
     if latitude is None:
@@ -83,7 +88,7 @@ def calculate_surface_irradiation(
     latitude: float,
     longitude: float,
     timezone: int,
-    albedo: float = 0.2
+    albedo: float = 0.2,
 ) -> pd.Series:
     """
     Calculate surface irradiation for a specific orientation.
@@ -141,19 +146,27 @@ def calculate_surface_irradiation(
                 direct_component = 0
 
             # Diffuse component (simplified isotropic model)
-            diffuse_component = dhi.iloc[i] * 0.5 * (1 + math.cos(math.radians(90)))  # Assuming vertical surface
+            diffuse_component = (
+                dhi.iloc[i] * 0.5 * (1 + math.cos(math.radians(90)))
+            )  # Assuming vertical surface
 
             # Reflected component
-            reflected_component = ghi.iloc[i] * albedo * 0.5 * (1 - math.cos(math.radians(90)))
+            reflected_component = (
+                ghi.iloc[i] * albedo * 0.5 * (1 - math.cos(math.radians(90)))
+            )
 
-            surface_irradiation.iloc[i] = direct_component + diffuse_component + reflected_component
+            surface_irradiation.iloc[i] = (
+                direct_component + diffuse_component + reflected_component
+            )
         else:
             surface_irradiation.iloc[i] = 0
 
     return surface_irradiation
 
 
-def calculate_solar_zenith(hour: int, latitude: float, longitude: float, timezone: int) -> float:
+def calculate_solar_zenith(
+    hour: int, latitude: float, longitude: float, timezone: int
+) -> float:
     """
     Calculate solar zenith angle for a given hour.
 
@@ -172,7 +185,9 @@ def calculate_solar_zenith(hour: int, latitude: float, longitude: float, timezon
     return max(0, min(90, solar_zenith))
 
 
-def calculate_solar_azimuth(hour: int, latitude: float, longitude: float, timezone: int) -> float:
+def calculate_solar_azimuth(
+    hour: int, latitude: float, longitude: float, timezone: int
+) -> float:
     """
     Calculate solar azimuth angle for a given hour.
 
@@ -189,9 +204,7 @@ def calculate_solar_azimuth(hour: int, latitude: float, longitude: float, timezo
 
 
 def calculate_cos_incidence(
-    solar_zenith: float,
-    solar_azimuth: float,
-    surface_azimuth: float
+    solar_zenith: float, solar_azimuth: float, surface_azimuth: float
 ) -> float:
     """
     Calculate cosine of angle of incidence between sun and surface.
@@ -216,10 +229,14 @@ def calculate_cos_incidence(
     surface_az_rad = math.radians(surface_azimuth)
 
     # Calculate angle of incidence
-    cos_incidence = (
-        math.cos(zenith_rad) * math.cos(math.radians(90)) +  # Vertical surface
-        math.sin(zenith_rad) * math.sin(math.radians(90)) *
-        math.cos(solar_az_rad - surface_az_rad)
+    cos_incidence = math.cos(zenith_rad) * math.cos(
+        math.radians(90)
+    ) + math.sin(  # Vertical surface
+        zenith_rad
+    ) * math.sin(
+        math.radians(90)
+    ) * math.cos(
+        solar_az_rad - surface_az_rad
     )
 
     return max(0, cos_incidence)  # Ensure non-negative
@@ -229,32 +246,97 @@ def calculate_solar_angles_epw(
     df_epw: pd.DataFrame,
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
-    timezone: Optional[int] = None
+    timezone: Optional[int] = None,
 ) -> Tuple[pd.Series, pd.Series]:
     """
     Calculate solar zenith and azimuth angles for EPW data.
 
     Parameters:
     -----------
-    epw_data : pd.DataFrame
-        EPW weather data
+    df_epw : pd.DataFrame
+        EPW weather data with datetime index
     latitude : float, optional
-        Site latitude in degrees
+        Site latitude in degrees. If None, will try to extract from EPW data
     longitude : float, optional
-        Site longitude in degrees
+        Site longitude in degrees. If None, will try to extract from EPW data
     timezone : int, optional
-        Site timezone offset in hours
+        Site timezone offset in hours. If None, will try to extract from EPW data
 
     Returns:
     --------
     Tuple[pd.Series, pd.Series]
-        Solar zenith and azimuth angles
+        Solar zenith and azimuth angles in degrees
     """
-    # This would need to be implemented with a proper solar position library
-    # For now, return placeholder series
-    hours = range(len(df_epw))
+    # If location information is not provided, try to extract from EPW data
+    if latitude is None or longitude is None or timezone is None:
+        # Check if the DataFrame has location attributes (from load_epw_with_location)
+        if hasattr(df_epw, "_epw_location_info"):
+            epw_lat, epw_lon, epw_tz = df_epw._epw_location_info
+            latitude = latitude or epw_lat
+            longitude = longitude or epw_lon
+            timezone = timezone or epw_tz
+        else:
+            # Try to get location from the original EPW file path if available
+            if hasattr(df_epw, "_epw_file_path"):
+                try:
+                    from .epw import load_epw_with_location
 
-    zenith_angles = pd.Series([45.0] * len(df_epw), index=df_epw.index)
-    azimuth_angles = pd.Series([180.0] * len(df_epw), index=df_epw.index)
+                    _, epw_lat, epw_lon, epw_tz = load_epw_with_location(
+                        df_epw._epw_file_path
+                    )
+                    latitude = latitude or epw_lat
+                    longitude = longitude or epw_lon
+                    timezone = timezone or epw_tz
+                except Exception:
+                    pass
+
+    # Ensure we have all required location information
+    if latitude is None or longitude is None or timezone is None:
+        raise ValueError(
+            "Latitude, longitude, and timezone are required for solar position calculations. "
+            "Either provide them explicitly or use load_epw_with_location() to load EPW data with location info."
+        )
+
+    # Ensure we have a datetime index
+    if not isinstance(df_epw.index, pd.DatetimeIndex):
+        raise ValueError(
+            "EPW DataFrame must have a datetime index for solar calculations"
+        )
+
+    # Convert local time to UTC for pvlib calculations
+    # EPW data is typically in local time, but pvlib expects UTC
+    # Note: Etc/GMT uses opposite sign convention (Etc/GMT-8 = UTC+8)
+    local_times = df_epw.index
+    timezone_int = int(timezone)  # Convert float to int for timezone string
+    utc_times = local_times.tz_localize(
+        f"Etc/GMT{-timezone_int:+d}"
+        if timezone_int <= 0
+        else f"Etc/GMT{-timezone_int:d}"
+    ).tz_convert("UTC")
+
+    # Calculate solar position using pvlib
+    solar_pos = solarposition.get_solarposition(
+        time=utc_times,
+        latitude=latitude,
+        longitude=longitude,
+        altitude=0,  # Sea level
+        pressure=None,  # Use standard atmosphere
+        temperature=df_epw.get(
+            "Dry Bulb Temperature (°C)", 20
+        ),  # Use temperature from EPW if available
+        delta_t=67.0,  # Delta T for solar position calculation
+        atmos_refract=0.5667,  # Atmospheric refraction
+        method="nrel_numpy",  # Use NREL's solar position algorithm
+    )
+
+    # Extract zenith and azimuth angles
+    zenith_angles = solar_pos["zenith"]
+    azimuth_angles = solar_pos["azimuth"]
+
+    # Ensure angles are within valid ranges
+    zenith_angles = zenith_angles.clip(0, 90)  # Zenith angle should be 0-90 degrees
+    azimuth_angles = azimuth_angles.clip(
+        0, 360
+    )  # Azimuth angle should be 0-360 degrees
 
     return zenith_angles, azimuth_angles

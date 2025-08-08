@@ -14,7 +14,7 @@ def adjust_wind_speed(
     wind_speed: Union[float, pd.Series],
     ref_height: float = 10.0,
     new_height: float = 10.0,
-    shear_coef: float = 0.15
+    shear_coef: float = 0.15,
 ) -> Union[float, pd.Series]:
     """
     Adjust wind speed to a specified height using the power law.
@@ -62,17 +62,42 @@ def map_wind_direction_to_sector(series_wind_direction, num_sectors=16):
         raise ValueError("num_sectors must be one of [4, 8, 16].")
 
     sector_labels = {
-        16: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
-        8:  ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
-        4:  ["N", "E", "S", "W"]
+        16: [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+        ],
+        8: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+        4: ["N", "E", "S", "W"],
     }[num_sectors]
 
     sector_width = 360 / num_sectors
-    sector_edges = np.linspace(-sector_width / 2, 360 - sector_width / 2, num_sectors + 1)
+    sector_edges = np.linspace(
+        -sector_width / 2, 360 - sector_width / 2, num_sectors + 1
+    )
     sector_edges[-1] = 360  # Ensure wrap-around for 360 degrees
 
-    return pd.cut(series_wind_direction % 360, bins=sector_edges, labels=sector_labels, right=False, include_lowest=True)
+    return pd.cut(
+        series_wind_direction % 360,
+        bins=sector_edges,
+        labels=sector_labels,
+        right=False,
+        include_lowest=True,
+    )
+
 
 # Example usage:
 # df["Wind Sector 16"] = map_wind_direction_to_sector(df["Average Direction"], 16)

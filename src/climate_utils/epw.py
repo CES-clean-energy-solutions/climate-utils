@@ -7,7 +7,7 @@ EPW weather files for climate analysis.
 
 from pathlib import Path
 import pandas as pd
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 # Required imports
 from ladybug.epw import EPW
@@ -15,6 +15,7 @@ from ladybug.epw import EPW
 from .psychrometrics_utils import series_humidity_ratio, series_enthalpy_air
 
 from . import wind
+
 
 def load_epw(epw_file_path):
     """
@@ -40,19 +41,77 @@ def load_epw(epw_file_path):
     return epw
 
 
-def epw_to_df(epw):
+def get_epw_location_info(epw: EPW) -> Tuple[float, float, int]:
+    """
+    Extract location information from an EPW file.
+
+    Parameters:
+    -----------
+    epw : EPW
+        EPW object from ladybug
+
+    Returns:
+    --------
+    Tuple[float, float, int]
+        (latitude, longitude, timezone_offset)
+    """
+    try:
+        latitude = epw.location.latitude
+        longitude = epw.location.longitude
+        timezone_offset = epw.location.time_zone
+        return latitude, longitude, timezone_offset
+    except AttributeError:
+        # Fallback: try to parse from header
+        raise ValueError("Could not extract location information from EPW file")
+
+
+def get_epw_datetime_index(epw: EPW, year: Optional[int] = None) -> pd.DatetimeIndex:
+    """
+    Create a proper datetime index from EPW data.
+
+    Parameters:
+    -----------
+    epw : EPW
+        EPW object from ladybug
+    year : int, optional
+        Year to use for the datetime index. If None, uses 2023 as default.
+        TMY files use fictional years, so this allows specifying a realistic year.
+
+    Returns:
+    --------
+    pd.DatetimeIndex
+        Datetime index for the EPW data
+    """
+    # Use specified year or default to 2023 for TMY files
+    if year is None:
+        year = 2023
+
+    # Create datetime index for the entire year (8760 hours)
+    # EPW files typically have hourly data for the entire year
+    start_date = pd.Timestamp(year=year, month=1, day=1, hour=0)
+    end_date = pd.Timestamp(year=year, month=12, day=31, hour=23)
+
+    return pd.date_range(start=start_date, end=end_date, freq="h")
+
+
+def epw_to_df(epw, year: Optional[int] = None):
     """
     Load an EPW file and return a processed DataFrame with
     - Select columns from the EPW file
     - Augmented psychrometric properties (Humidity Ratio, Enthalpy)
     - Wind sectors (16 sectors)
+    - Proper datetime index from EPW data
+
+    Parameters:
+    -----------
+    epw : EPW
+        EPW object from ladybug
+    year : int, optional
+        Year to use for the datetime index. If None, uses 2023 as default.
+        TMY files use fictional years, so this allows specifying a realistic year.
     """
     # Extract relevant data columns
     data = {
-        # "Year": [h[0] for h in epw.hourly_data],  # Extract year
-        # "Month": [h[1] for h in epw.hourly_data],  # Extract month
-        # "Day": [h[2] for h in epw.hourly_data],  # Extract day
-        # "Hour": [h[3] for h in epw.hourly_data],  # Extract hour
         "Dry Bulb Temperature (°C)": epw.dry_bulb_temperature,
         "Dew Point Temperature (°C)": epw.dew_point_temperature,
         "Relative Humidity (%)": epw.relative_humidity,
@@ -73,30 +132,33 @@ def epw_to_df(epw):
     # Create a DataFrame
     df = pd.DataFrame(data)
 
-
-    assert df['Relative Humidity (%)'].between(0, 100).all(), f"Invalid RH values found:\n{df[~df['Relative Humidity (%)'].between(0, 100)]}"
+    assert (
+        df["Relative Humidity (%)"].between(0, 100).all()
+    ), f"Invalid RH values found:\n{df[~df['Relative Humidity (%)'].between(0, 100)]}"
 
     # Compute psychrometric properties
-    df['Humidity Ratio (g/kg)'] = series_humidity_ratio(
-        df['Dry Bulb Temperature (°C)'], df['Relative Humidity (%)'], df['Atmospheric Pressure (Pa)']
+    df["Humidity Ratio (g/kg)"] = series_humidity_ratio(
+        df["Dry Bulb Temperature (°C)"],
+        df["Relative Humidity (%)"],
+        df["Atmospheric Pressure (Pa)"],
     )
-    df['Enthalpy (J/kg)'] = series_enthalpy_air(
-        df['Dry Bulb Temperature (°C)'], df['Relative Humidity (%)'], df['Atmospheric Pressure (Pa)']
+    df["Enthalpy (J/kg)"] = series_enthalpy_air(
+        df["Dry Bulb Temperature (°C)"],
+        df["Relative Humidity (%)"],
+        df["Atmospheric Pressure (Pa)"],
     )
 
-    df['Sector'] = wind.map_wind_direction_to_sector(df['Wind Direction (°)'], 16)
+    df["Sector"] = wind.map_wind_direction_to_sector(df["Wind Direction (°)"], 16)
 
-    df['2 Sector'] = df['Wind Direction (°)'].apply(lambda x: 'N' if (x > 270 or x < 90) else 'S')
+    df["2 Sector"] = df["Wind Direction (°)"].apply(
+        lambda x: "N" if (x > 270 or x < 90) else "S"
+    )
 
-    # print(df['Sector'])
-    # df['Wet Bulb Temperature (°C)'] = psychrometrics.series_wet_bulb_temperature(
-    #     df['Dry Bulb Temperature (°C)'], df['Relative Humidity (%)'], df['Atmospheric Pressure (Pa)']
-    # )
-
-    # Set datetime index
-    df.index = pd.date_range(start="2023-01-01 00:00", periods=8760, freq="h")
+    # Set datetime index from actual EPW data
+    df.index = get_epw_datetime_index(epw, year=year)
 
     return df
+
 
 def create_blank_epw() -> EPW:
     """
@@ -134,6 +196,7 @@ DATA PERIODS,1,1,Data,Sunday,1/1,12/31
 
     return epw
 
+
 def update_epw_column(epw: EPW, column_name: str, data_series: pd.Series) -> EPW:
     """
     Updates a specific data column in an EPW object with values from a pandas Series.
@@ -149,14 +212,18 @@ def update_epw_column(epw: EPW, column_name: str, data_series: pd.Series) -> EPW
 
     # Ensure the data_series has exactly 8760 values
     if len(data_series) != 8760:
-        raise ValueError("The data_series must contain exactly 8760 values, you provided {len(data_series)}.")
+        raise ValueError(
+            "The data_series must contain exactly 8760 values, you provided {len(data_series)}."
+        )
 
     # Get the list of valid column names from epw._data
     valid_columns = [str(dataset.header.data_type) for dataset in epw._data]
 
     # Validate that the requested column exists
     if column_name not in valid_columns:
-        raise ValueError(f"'{column_name}' is not a valid EPW column. Choose from: {valid_columns}")
+        raise ValueError(
+            f"'{column_name}' is not a valid EPW column. Choose from: {valid_columns}"
+        )
 
     # Find the index of the requested column
     column_index = valid_columns.index(column_name)
@@ -166,13 +233,46 @@ def update_epw_column(epw: EPW, column_name: str, data_series: pd.Series) -> EPW
 
     return epw
 
-def load_epw_to_df(epw_file_path):
+
+def load_epw_to_df(epw_file_path, year: Optional[int] = None):
     """
     Load an EPW file and return a processed DataFrame with
     - Select columns from the EPW file
     - Augmented psychrometric properties (Humidity Ratio, Enthalpy)
     - Wind sectors (16 sectors)
+    - Proper datetime index from EPW data
+
+    Parameters:
+    -----------
+    epw_file_path : str or Path
+        Path to the EPW file
+    year : int, optional
+        Year to use for the datetime index. If None, uses 2023 as default.
+        TMY files use fictional years, so this allows specifying a realistic year.
     """
     epw = load_epw(epw_file_path)
-    df = epw_to_df(epw)
+    df = epw_to_df(epw, year=year)
     return df
+
+
+def load_epw_with_location(epw_file_path, year: Optional[int] = None):
+    """
+    Load an EPW file and return both the DataFrame and location information.
+
+    Parameters:
+    -----------
+    epw_file_path : str or Path
+        Path to the EPW file
+    year : int, optional
+        Year to use for the datetime index. If None, uses 2023 as default.
+        TMY files use fictional years, so this allows specifying a realistic year.
+
+    Returns:
+    --------
+    Tuple[pd.DataFrame, float, float, int]
+        (DataFrame, latitude, longitude, timezone_offset)
+    """
+    epw = load_epw(epw_file_path)
+    df = epw_to_df(epw, year=year)
+    latitude, longitude, timezone_offset = get_epw_location_info(epw)
+    return df, latitude, longitude, timezone_offset

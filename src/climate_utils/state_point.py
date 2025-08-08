@@ -27,7 +27,7 @@ class StatePoint:
         wet_bulb_temp: Optional[Union[float, pd.Series]] = None,
         dew_point_temp: Optional[Union[float, pd.Series]] = None,
         pressure: Union[float, pd.Series] = 101325.0,
-        altitude: Optional[Union[float, pd.Series]] = None
+        altitude: Optional[Union[float, pd.Series]] = None,
     ):
         """
         Initialize a StatePoint with air properties.
@@ -77,17 +77,23 @@ class StatePoint:
             relative_humidity=relative_humidity,
             wet_bulb_temp=wet_bulb_temp,
             dew_point_temp=dew_point_temp,
-            length=length
+            length=length,
         )
 
-    def _ensure_series(self, value: Union[float, pd.Series], length: int = 1) -> pd.Series:
+    def _ensure_series(
+        self, value: Union[float, pd.Series], length: int = 1
+    ) -> pd.Series:
         """Convert scalar to series if needed."""
         if isinstance(value, pd.Series):
             return value
         else:
             # Use the same index as dry_bulb_temp if available
-            if hasattr(self, 'dry_bulb_temp') and isinstance(self.dry_bulb_temp, pd.Series):
-                return pd.Series([value] * len(self.dry_bulb_temp), index=self.dry_bulb_temp.index)
+            if hasattr(self, "dry_bulb_temp") and isinstance(
+                self.dry_bulb_temp, pd.Series
+            ):
+                return pd.Series(
+                    [value] * len(self.dry_bulb_temp), index=self.dry_bulb_temp.index
+                )
             else:
                 return pd.Series([value] * length)
 
@@ -102,19 +108,23 @@ class StatePoint:
         relative_humidity: Optional[Union[float, pd.Series]] = None,
         wet_bulb_temp: Optional[Union[float, pd.Series]] = None,
         dew_point_temp: Optional[Union[float, pd.Series]] = None,
-        length: int = 1
+        length: int = 1,
     ):
         """Set properties and calculate dependent ones."""
         # Count how many properties are provided
-        provided = sum([
-            humidity_ratio is not None,
-            relative_humidity is not None,
-            wet_bulb_temp is not None,
-            dew_point_temp is not None
-        ])
+        provided = sum(
+            [
+                humidity_ratio is not None,
+                relative_humidity is not None,
+                wet_bulb_temp is not None,
+                dew_point_temp is not None,
+            ]
+        )
 
         if provided > 1:
-            raise ValueError("Only one of humidity_ratio, relative_humidity, wet_bulb_temp, or dew_point_temp should be provided")
+            raise ValueError(
+                "Only one of humidity_ratio, relative_humidity, wet_bulb_temp, or dew_point_temp should be provided"
+            )
 
         if provided == 0:
             # Default to dry air
@@ -131,11 +141,15 @@ class StatePoint:
                 self._humidity_ratio = self._calculate_humidity_ratio_from_wet_bulb(wbt)
             elif dew_point_temp is not None:
                 dpt = self._ensure_series(dew_point_temp, length)
-                self._humidity_ratio = self._calculate_humidity_ratio_from_dew_point(dpt)
+                self._humidity_ratio = self._calculate_humidity_ratio_from_dew_point(
+                    dpt
+                )
 
             self._calculate_all_properties()
 
-    def _calculate_humidity_ratio_from_rh(self, relative_humidity: pd.Series) -> pd.Series:
+    def _calculate_humidity_ratio_from_rh(
+        self, relative_humidity: pd.Series
+    ) -> pd.Series:
         """Calculate humidity ratio from relative humidity."""
         # Saturation vapor pressure at dry bulb temperature
         pws = self._calculate_saturation_vapor_pressure(self.dry_bulb_temp)
@@ -146,7 +160,9 @@ class StatePoint:
         # Humidity ratio
         return 0.62198 * pw / (self.pressure - pw)
 
-    def _calculate_humidity_ratio_from_wet_bulb(self, wet_bulb_temp: pd.Series) -> pd.Series:
+    def _calculate_humidity_ratio_from_wet_bulb(
+        self, wet_bulb_temp: pd.Series
+    ) -> pd.Series:
         """Calculate humidity ratio from wet bulb temperature."""
         # Saturation vapor pressure at wet bulb temperature
         pws_wb = self._calculate_saturation_vapor_pressure(wet_bulb_temp)
@@ -163,7 +179,9 @@ class StatePoint:
         # Humidity ratio
         return (h_wb - h_db) / (2501 + 1.86 * self.dry_bulb_temp)
 
-    def _calculate_humidity_ratio_from_dew_point(self, dew_point_temp: pd.Series) -> pd.Series:
+    def _calculate_humidity_ratio_from_dew_point(
+        self, dew_point_temp: pd.Series
+    ) -> pd.Series:
         """Calculate humidity ratio from dew point temperature."""
         # Saturation vapor pressure at dew point temperature
         pws_dp = self._calculate_saturation_vapor_pressure(dew_point_temp)
@@ -190,10 +208,16 @@ class StatePoint:
         self._wet_bulb_temp = self._calculate_wet_bulb_temperature()
 
         # Enthalpy
-        self._enthalpy = 1.006 * self.dry_bulb_temp + self._humidity_ratio * (2501 + 1.86 * self.dry_bulb_temp)
+        self._enthalpy = 1.006 * self.dry_bulb_temp + self._humidity_ratio * (
+            2501 + 1.86 * self.dry_bulb_temp
+        )
 
         # Specific volume
-        self._specific_volume = (287.055 * (self.dry_bulb_temp + 273.15) * (1 + 1.6078 * self._humidity_ratio)) / self.pressure
+        self._specific_volume = (
+            287.055
+            * (self.dry_bulb_temp + 273.15)
+            * (1 + 1.6078 * self._humidity_ratio)
+        ) / self.pressure
 
     def _calculate_dew_point_temperature(self) -> pd.Series:
         """Calculate dew point temperature."""
@@ -243,16 +267,18 @@ class StatePoint:
 
     def to_dataframe(self) -> pd.DataFrame:
         """Convert state point to DataFrame."""
-        return pd.DataFrame({
-            'dry_bulb_temp': self.dry_bulb_temp,
-            'humidity_ratio': self._humidity_ratio,
-            'relative_humidity': self._relative_humidity,
-            'wet_bulb_temp': self._wet_bulb_temp,
-            'dew_point_temp': self._dew_point_temp,
-            'enthalpy': self._enthalpy,
-            'specific_volume': self._specific_volume,
-            'pressure': self.pressure
-        })
+        return pd.DataFrame(
+            {
+                "dry_bulb_temp": self.dry_bulb_temp,
+                "humidity_ratio": self._humidity_ratio,
+                "relative_humidity": self._relative_humidity,
+                "wet_bulb_temp": self._wet_bulb_temp,
+                "dew_point_temp": self._dew_point_temp,
+                "enthalpy": self._enthalpy,
+                "specific_volume": self._specific_volume,
+                "pressure": self.pressure,
+            }
+        )
 
     def __repr__(self) -> str:
         """String representation of the StatePoint."""
@@ -277,14 +303,11 @@ def create_state_point_from_epw(df_epw: pd.DataFrame) -> StatePoint:
         StatePoint object with psychrometric properties
     """
     # Extract data directly using exact column names
-    dry_bulb_temp = df_epw['Dry Bulb Temperature (°C)']
-    relative_humidity = df_epw['Relative Humidity (%)']
+    dry_bulb_temp = df_epw["Dry Bulb Temperature (°C)"]
+    relative_humidity = df_epw["Relative Humidity (%)"]
 
     # Convert relative humidity to fraction if in percentage
     if relative_humidity.max() > 1:
         relative_humidity = relative_humidity / 100
 
-    return StatePoint(
-        dry_bulb_temp=dry_bulb_temp,
-        relative_humidity=relative_humidity
-    )
+    return StatePoint(dry_bulb_temp=dry_bulb_temp, relative_humidity=relative_humidity)

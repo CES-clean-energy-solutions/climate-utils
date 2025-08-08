@@ -1,7 +1,0 @@
----
-alwaysApply: false
----
-Only use lowercase frequency strings: 'h', 'min', 's', 'ms', 'us', 'ns'
-
-Warn on use of 'H', 'T', 'S', 'L', 'U', 'N'
-

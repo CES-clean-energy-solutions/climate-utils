@@ -17,6 +17,7 @@
         }
     },
     "mounts": [
-        "source=/mnt/c/Users/m.jones/gocomp,target=/mnt/gocomp,type=bind,consistency=cached"
-    ]
+        "source=/mnt/c/git/agentic-central,target=/mnt/c/git/agentic-central,type=bind,consistency=cached"
+    ],
+    "postStartCommand": "sudo ln -sf /mnt/c/git/agentic-central /workspaces/climate-utils/.claude"
 }

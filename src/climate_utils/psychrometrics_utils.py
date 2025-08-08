@@ -12,7 +12,9 @@ import psychrolib
 psychrolib.SetUnitSystem(psychrolib.SI)
 
 
-def series_humidity_ratio(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pressure: pd.Series = None) -> pd.Series:
+def series_humidity_ratio(
+    dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pressure: pd.Series = None
+) -> pd.Series:
     """
     Calculate the humidity ratio (g/kg) given dry-bulb temperature (°C), relative humidity (%),
     and optional atmospheric pressure (Pa).
@@ -31,7 +33,9 @@ def series_humidity_ratio(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pre
     pd.Series
         Humidity ratio in g/kg
     """
-    if not isinstance(dry_bulb_temp, pd.Series) or not isinstance(rel_humidity, pd.Series):
+    if not isinstance(dry_bulb_temp, pd.Series) or not isinstance(
+        rel_humidity, pd.Series
+    ):
         raise TypeError("dry_bulb_temp and rel_humidity must be Pandas Series.")
 
     # Convert RH from % to fraction
@@ -41,7 +45,9 @@ def series_humidity_ratio(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pre
     if pressure is None:
         pressure = pd.Series(101325, index=dry_bulb_temp.index)  # Default pressure
 
-    if isinstance(pressure, (int, float)):  # If pressure is a scalar, convert to a Series
+    if isinstance(
+        pressure, (int, float)
+    ):  # If pressure is a scalar, convert to a Series
         pressure = pd.Series(pressure, index=dry_bulb_temp.index)
 
     if not isinstance(pressure, pd.Series):
@@ -60,7 +66,9 @@ def series_humidity_ratio(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pre
     return humidity_ratio_g_per_kg
 
 
-def series_enthalpy_air(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pressure: pd.Series = None) -> pd.Series:
+def series_enthalpy_air(
+    dry_bulb_temp: pd.Series, rel_humidity: pd.Series, pressure: pd.Series = None
+) -> pd.Series:
     """
     Calculate the enthalpy of moist air (J/kg) given dry-bulb temperature (°C), relative humidity (%),
     and optional atmospheric pressure (Pa).
@@ -79,7 +87,9 @@ def series_enthalpy_air(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, press
     pd.Series
         Enthalpy of moist air in J/kg
     """
-    if not isinstance(dry_bulb_temp, pd.Series) or not isinstance(rel_humidity, pd.Series):
+    if not isinstance(dry_bulb_temp, pd.Series) or not isinstance(
+        rel_humidity, pd.Series
+    ):
         raise TypeError("dry_bulb_temp and rel_humidity must be Pandas Series.")
 
     # Convert RH from % to fraction
@@ -89,7 +99,9 @@ def series_enthalpy_air(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, press
     if pressure is None:
         pressure = pd.Series(101325, index=dry_bulb_temp.index)  # Default pressure
 
-    if isinstance(pressure, (int, float)):  # If pressure is a scalar, convert to a Series
+    if isinstance(
+        pressure, (int, float)
+    ):  # If pressure is a scalar, convert to a Series
         pressure = pd.Series(pressure, index=dry_bulb_temp.index)
 
     if not isinstance(pressure, pd.Series):
@@ -99,7 +111,9 @@ def series_enthalpy_air(dry_bulb_temp: pd.Series, rel_humidity: pd.Series, press
     enthalpy_j_per_kg = dry_bulb_temp.index.to_series().apply(
         lambda idx: psychrolib.GetMoistAirEnthalpy(
             dry_bulb_temp.loc[idx],
-            psychrolib.GetHumRatioFromRelHum(dry_bulb_temp.loc[idx], rh_fraction.loc[idx], pressure.loc[idx])
+            psychrolib.GetHumRatioFromRelHum(
+                dry_bulb_temp.loc[idx], rh_fraction.loc[idx], pressure.loc[idx]
+            ),
         )
     )
 

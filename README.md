@@ -228,7 +228,7 @@ All modules now use explicit, descriptive DataFrame column names that match the 
 - **Data Validation**: Information about missing value indicators and data validation
 
 ### Robust Testing
-- **28 Comprehensive Tests**: Covering all modules with real EPW data integration
+- **39 Comprehensive Tests**: Covering all modules with real EPW data integration
 - **Integration Tests**: Tests using actual EPW files to ensure real-world compatibility
 - **Floating Point Precision**: Robust handling of floating-point precision issues
 - **Error Handling**: Comprehensive error testing for edge cases
@@ -236,6 +236,7 @@ All modules now use explicit, descriptive DataFrame column names that match the 
 ### Dependencies
 - **ladybug-core**: Required dependency for EPW file processing
 - **psychrolib**: Industry-standard psychrometric calculations
+- **pvlib**: Solar position and radiation calculations
 - **pandas**: Data manipulation and analysis
 - **numpy**: Numerical computations
 
@@ -265,6 +266,7 @@ pytest tests/
 ## Documentation
 
 - **EPW File Structure**: See `docs/epw_file_structure.md` for comprehensive EPW file documentation
+- **DataFrame Types and Validation**: See `docs/dataframe_types_and_validation.md` for type safety and validation approaches
 - **API Reference**: Full API documentation available at: [climate-utils.readthedocs.io](https://climate-utils.readthedocs.io)
 
 ## Contributing

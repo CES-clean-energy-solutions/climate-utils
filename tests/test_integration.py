@@ -8,9 +8,17 @@ import pytest
 import pandas as pd
 import numpy as np
 from climate_utils import (
-    epw, wind, wind_analysis, solar, state_point,
-    load_epw_to_df, adjust_wind_speed, map_wind_direction_to_sector,
-    get_surface_irradiation_orientations_epw, StatePoint, create_state_point_from_epw
+    epw,
+    wind,
+    wind_analysis,
+    solar,
+    state_point,
+    load_epw_to_df,
+    adjust_wind_speed,
+    map_wind_direction_to_sector,
+    get_surface_irradiation_orientations_epw,
+    StatePoint,
+    create_state_point_from_epw,
 )
 
 
@@ -25,38 +33,57 @@ class TestIntegration:
 
         # Check required columns exist
         required_cols = [
-            'Dry Bulb Temperature (°C)',
-            'Relative Humidity (%)',
-            'Wind Speed (m/s)',
-            'Wind Direction (°)',
-            'Humidity Ratio (g/kg)',
-            'Enthalpy (J/kg)',
-            'Sector'
+            "Dry Bulb Temperature (°C)",
+            "Relative Humidity (%)",
+            "Wind Speed (m/s)",
+            "Wind Direction (°)",
+            "Humidity Ratio (g/kg)",
+            "Enthalpy (J/kg)",
+            "Sector",
         ]
 
         for col in required_cols:
             assert col in sf_epw_data.columns, f"Missing column: {col}"
 
         # Check data ranges are reasonable
-        assert sf_epw_data['Dry Bulb Temperature (°C)'].min() > -50
-        assert sf_epw_data['Dry Bulb Temperature (°C)'].max() < 60
-        assert sf_epw_data['Relative Humidity (%)'].min() >= 0
-        assert sf_epw_data['Relative Humidity (%)'].max() <= 100
-        assert sf_epw_data['Wind Speed (m/s)'].min() >= 0
+        assert sf_epw_data["Dry Bulb Temperature (°C)"].min() > -50
+        assert sf_epw_data["Dry Bulb Temperature (°C)"].max() < 60
+        assert sf_epw_data["Relative Humidity (%)"].min() >= 0
+        assert sf_epw_data["Relative Humidity (%)"].max() <= 100
+        assert sf_epw_data["Wind Speed (m/s)"].min() >= 0
 
         # Check psychrometric calculations
-        assert sf_epw_data['Humidity Ratio (g/kg)'].min() >= 0
-        assert sf_epw_data['Enthalpy (J/kg)'].min() > 0
+        assert sf_epw_data["Humidity Ratio (g/kg)"].min() >= 0
+        assert sf_epw_data["Enthalpy (J/kg)"].min() > 0
 
         # Check wind sectors
-        assert all(sector in ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-                             'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-                  for sector in sf_epw_data['Sector'].unique())
+        assert all(
+            sector
+            in [
+                "N",
+                "NNE",
+                "NE",
+                "ENE",
+                "E",
+                "ESE",
+                "SE",
+                "SSE",
+                "S",
+                "SSW",
+                "SW",
+                "WSW",
+                "W",
+                "WNW",
+                "NW",
+                "NNW",
+            ]
+            for sector in sf_epw_data["Sector"].unique()
+        )
 
     def test_wind_analysis_integration(self, sf_epw_data):
         """Test wind analysis with real EPW data."""
-        wind_speed = sf_epw_data['Wind Speed (m/s)']
-        wind_direction = sf_epw_data['Wind Direction (°)']
+        wind_speed = sf_epw_data["Wind Speed (m/s)"]
+        wind_direction = sf_epw_data["Wind Direction (°)"]
 
         # Test basic wind speed adjustment
         adjusted_speed = adjust_wind_speed(
@@ -85,20 +112,20 @@ class TestIntegration:
             wind_direction=wind_direction,
             height=10.0,
             target_height=80.0,
-            shear_coefficient=0.14
+            shear_coefficient=0.14,
         )
 
         assert isinstance(wind_analysis_results, dict)
-        assert 'basic_statistics' in wind_analysis_results
-        assert 'adjusted_statistics' in wind_analysis_results
-        assert 'wind_rose_data' in wind_analysis_results
-        assert 'weibull_parameters' in wind_analysis_results
+        assert "basic_statistics" in wind_analysis_results
+        assert "adjusted_statistics" in wind_analysis_results
+        assert "wind_rose_data" in wind_analysis_results
+        assert "weibull_parameters" in wind_analysis_results
 
         # Check statistics are reasonable
-        stats = wind_analysis_results['basic_statistics']
-        assert stats['mean_speed'] > 0
-        assert stats['max_speed'] > stats['mean_speed']
-        assert stats['calm_percentage'] >= 0
+        stats = wind_analysis_results["basic_statistics"]
+        assert stats["mean_speed"] > 0
+        assert stats["max_speed"] > stats["mean_speed"]
+        assert stats["calm_percentage"] >= 0
 
     def test_solar_analysis_integration(self, sf_epw_data):
         """Test solar analysis with real EPW data."""
@@ -106,9 +133,7 @@ class TestIntegration:
         orientations = [0, 90, 180, 270]  # N, E, S, W
 
         solar_results = get_surface_irradiation_orientations_epw(
-            sf_epw_data,
-            orientations=orientations,
-            albedo=0.2
+            sf_epw_data, orientations=orientations, albedo=0.2
         )
 
         assert isinstance(solar_results, dict)
@@ -147,9 +172,9 @@ class TestIntegration:
         df = subset_state_points.to_dataframe()
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 100
-        assert 'dry_bulb_temp' in df.columns
-        assert 'humidity_ratio' in df.columns
-        assert 'enthalpy' in df.columns
+        assert "dry_bulb_temp" in df.columns
+        assert "humidity_ratio" in df.columns
+        assert "enthalpy" in df.columns
 
     def test_full_workflow_integration(self, sf_epw_data):
         """Test complete workflow from EPW data to final analysis."""
@@ -161,33 +186,32 @@ class TestIntegration:
 
         # Step 3: Analyze wind
         wind_results = wind_analysis.analyze_wind_resource(
-            wind_speed=sf_epw_data['Wind Speed (m/s)'],
-            wind_direction=sf_epw_data['Wind Direction (°)'],
+            wind_speed=sf_epw_data["Wind Speed (m/s)"],
+            wind_direction=sf_epw_data["Wind Direction (°)"],
             height=10.0,
-            target_height=80.0
+            target_height=80.0,
         )
 
         # Step 4: Analyze solar
         solar_results = get_surface_irradiation_orientations_epw(
-            sf_epw_data,
-            orientations=[0, 90, 180, 270]
+            sf_epw_data, orientations=[0, 90, 180, 270]
         )
 
         # Step 5: Verify all results are consistent
         assert len(state_points.dry_bulb_temp) == len(sf_epw_data)
-        assert len(wind_results['adjusted_wind_speed']) == len(sf_epw_data)
-        assert len(solar_results['0°']) == len(sf_epw_data)
+        assert len(wind_results["adjusted_wind_speed"]) == len(sf_epw_data)
+        assert len(solar_results["0°"]) == len(sf_epw_data)
 
         # Step 6: Check data quality
         assert not state_points.dry_bulb_temp.isna().any()
-        assert not wind_results['adjusted_wind_speed'].isna().any()
-        assert not solar_results['0°'].isna().any()
+        assert not wind_results["adjusted_wind_speed"].isna().any()
+        assert not solar_results["0°"].isna().any()
 
     def test_data_consistency(self, sf_epw_data):
         """Test that all calculated data is consistent."""
         # Check that temperature and humidity data is consistent
-        temp = sf_epw_data['Dry Bulb Temperature (°C)']
-        rh = sf_epw_data['Relative Humidity (%)']
+        temp = sf_epw_data["Dry Bulb Temperature (°C)"]
+        rh = sf_epw_data["Relative Humidity (%)"]
 
         # Create state points and verify consistency
         state_points = create_state_point_from_epw(sf_epw_data)
@@ -195,18 +219,39 @@ class TestIntegration:
         # Check that relative humidity is properly converted
         eps = 1e-8
         if not (state_points.relative_humidity <= 1.0 + eps).all():
-            print('Max relative humidity:', state_points.relative_humidity.max())
-            print('Values > 1.0:', state_points.relative_humidity[state_points.relative_humidity > 1.0 + eps])
-        assert (state_points.relative_humidity <= 1.0 + eps).all(), f"Relative humidity out of bounds: max={state_points.relative_humidity.max()}"
+            print("Max relative humidity:", state_points.relative_humidity.max())
+            print(
+                "Values > 1.0:",
+                state_points.relative_humidity[
+                    state_points.relative_humidity > 1.0 + eps
+                ],
+            )
+        assert (
+            state_points.relative_humidity <= 1.0 + eps
+        ).all(), f"Relative humidity out of bounds: max={state_points.relative_humidity.max()}"
         if not (state_points.relative_humidity >= 0.0 - eps).all():
-            print('Min relative humidity:', state_points.relative_humidity.min())
-            print('Values < 0.0:', state_points.relative_humidity[state_points.relative_humidity < 0.0 - eps])
-        assert (state_points.relative_humidity >= 0.0 - eps).all(), f"Relative humidity out of bounds: min={state_points.relative_humidity.min()}"
+            print("Min relative humidity:", state_points.relative_humidity.min())
+            print(
+                "Values < 0.0:",
+                state_points.relative_humidity[
+                    state_points.relative_humidity < 0.0 - eps
+                ],
+            )
+        assert (
+            state_points.relative_humidity >= 0.0 - eps
+        ).all(), f"Relative humidity out of bounds: min={state_points.relative_humidity.min()}"
         # Check that humidity ratio is positive
         if not (state_points.humidity_ratio >= 0).all():
-            print('Min humidity ratio:', state_points.humidity_ratio.min())
-            print('Values < 0:', state_points.humidity_ratio[state_points.humidity_ratio < 0])
-        assert (state_points.humidity_ratio >= 0).all(), f"Humidity ratio out of bounds: min={state_points.humidity_ratio.min()}"
+            print("Min humidity ratio:", state_points.humidity_ratio.min())
+            print(
+                "Values < 0:",
+                state_points.humidity_ratio[state_points.humidity_ratio < 0],
+            )
+        assert (
+            state_points.humidity_ratio >= 0
+        ).all(), (
+            f"Humidity ratio out of bounds: min={state_points.humidity_ratio.min()}"
+        )
 
         # Check that enthalpy increases with temperature (generally)
         temp_enthalpy_corr = temp.corr(state_points.enthalpy)
@@ -219,18 +264,17 @@ class TestIntegration:
         # Test wind analysis performance
         start_time = time.time()
         wind_results = wind_analysis.analyze_wind_resource(
-            wind_speed=sf_epw_data['Wind Speed (m/s)'],
-            wind_direction=sf_epw_data['Wind Direction (°)'],
+            wind_speed=sf_epw_data["Wind Speed (m/s)"],
+            wind_direction=sf_epw_data["Wind Direction (°)"],
             height=10.0,
-            target_height=80.0
+            target_height=80.0,
         )
         wind_time = time.time() - start_time
 
         # Test solar analysis performance
         start_time = time.time()
         solar_results = get_surface_irradiation_orientations_epw(
-            sf_epw_data,
-            orientations=[0, 90, 180, 270]
+            sf_epw_data, orientations=[0, 90, 180, 270]
         )
         solar_time = time.time() - start_time
 
@@ -244,4 +288,6 @@ class TestIntegration:
         assert solar_time < 10.0, f"Solar analysis took {solar_time:.2f}s"
         assert state_time < 10.0, f"State point creation took {state_time:.2f}s"
 
-        print(f"Performance: Wind={wind_time:.2f}s, Solar={solar_time:.2f}s, State={state_time:.2f}s")
+        print(
+            f"Performance: Wind={wind_time:.2f}s, Solar={solar_time:.2f}s, State={state_time:.2f}s"
+        )
