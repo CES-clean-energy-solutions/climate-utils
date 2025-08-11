@@ -242,6 +242,105 @@ def calculate_cos_incidence(
     return max(0, cos_incidence)  # Ensure non-negative
 
 
+def get_surface_irradiation_components(
+    df_epw: pd.DataFrame,
+    orientations: Optional[List[float]] = None,
+    surface_tilt: float = 90.0,
+    albedo: float = 0.2,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[int] = None,
+    sky_model: str = 'haydavies',
+) -> pd.DataFrame:
+    """
+    Calculate surface irradiation components for different orientations.
+    
+    Returns separate columns for direct, sky diffuse, ground diffuse, and global
+    irradiation for each orientation.
+    
+    Parameters:
+    -----------
+    df_epw : pd.DataFrame
+        EPW weather data with radiation columns
+    orientations : List[float], optional
+        List of surface azimuth angles in degrees (0 = North, 90 = East, etc.)
+        Default: [0, 90, 180, 270] (N, E, S, W)
+    surface_tilt : float, default 90.0
+        Surface tilt angle in degrees (0 = horizontal, 90 = vertical)
+    albedo : float, default 0.2
+        Ground albedo (reflectance)
+    latitude : float, optional
+        Site latitude in degrees
+    longitude : float, optional  
+        Site longitude in degrees
+    timezone : int, optional
+        Site timezone offset in hours
+    sky_model : str, default 'haydavies'
+        Sky diffuse model: 'isotropic', 'haydavies', 'reindl', 'king', 'perez'
+        
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame with columns for each orientation and component:
+        - {angle}_direct (W/m²)
+        - {angle}_sky_diffuse (W/m²)
+        - {angle}_ground_diffuse (W/m²)
+        - {angle}_global (W/m²)
+    """
+    if orientations is None:
+        orientations = [0, 90, 180, 270]  # N, E, S, W
+        
+    # Extract radiation data
+    dni = df_epw["Direct Normal Radiation (Wh/m²)"]
+    dhi = df_epw["Diffuse Horizontal Radiation (Wh/m²)"]
+    ghi = df_epw["Global Horizontal Radiation (Wh/m²)"]
+    
+    # Get solar position using existing function
+    zenith_angles, azimuth_angles = calculate_solar_angles_epw(
+        df_epw, latitude, longitude, timezone
+    )
+    
+    # Initialize result DataFrame
+    result_df = pd.DataFrame(index=df_epw.index)
+    
+    # Ensure all series have the same index as the EPW data (timezone-naive)
+    # The solar position calculation returns timezone-aware indices, but we need
+    # everything to align with the EPW data index
+    zenith_angles = pd.Series(zenith_angles.values, index=df_epw.index)
+    azimuth_angles = pd.Series(azimuth_angles.values, index=df_epw.index)
+    
+    # Calculate extraterrestrial DNI if needed for certain sky models
+    dni_extra = None
+    if sky_model.lower() in ['haydavies', 'reindl', 'perez', 'perez-driesse']:
+        # Use pvlib to calculate extraterrestrial radiation
+        # Use the EPW index to ensure consistency
+        dni_extra = pvlib.irradiance.get_extra_radiation(df_epw.index)
+    
+    # Calculate components for each orientation
+    for orientation in orientations:
+        # Use pvlib's get_total_irradiance
+        poa_components = pvlib.irradiance.get_total_irradiance(
+            surface_tilt=surface_tilt,
+            surface_azimuth=orientation,
+            solar_zenith=zenith_angles,
+            solar_azimuth=azimuth_angles,
+            dni=dni,
+            ghi=ghi,
+            dhi=dhi,
+            dni_extra=dni_extra,
+            albedo=albedo,
+            model=sky_model,
+        )
+        
+        # Add columns to result DataFrame
+        result_df[f'{int(orientation)}_direct'] = poa_components['poa_direct']
+        result_df[f'{int(orientation)}_sky_diffuse'] = poa_components['poa_sky_diffuse']
+        result_df[f'{int(orientation)}_ground_diffuse'] = poa_components['poa_ground_diffuse']
+        result_df[f'{int(orientation)}_global'] = poa_components['poa_global']
+        
+    return result_df
+
+
 def calculate_solar_angles_epw(
     df_epw: pd.DataFrame,
     latitude: Optional[float] = None,

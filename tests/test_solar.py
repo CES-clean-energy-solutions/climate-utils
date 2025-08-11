@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from climate_utils.solar import (
     get_surface_irradiation_orientations_epw,
+    get_surface_irradiation_components,
     calculate_surface_irradiation,
     calculate_solar_zenith,
     calculate_solar_azimuth,
@@ -467,6 +468,117 @@ class TestSolarCalculations:
             f"Annual azimuth range: {azimuth_angles.min():.2f}° to {azimuth_angles.max():.2f}°"
         )
 
+    def test_get_surface_irradiation_components(self, sf_epw_data):
+        """Test the new surface irradiation components function."""
+        # Test with default orientations
+        results = get_surface_irradiation_components(
+            sf_epw_data,
+            latitude=37.7749,
+            longitude=-122.4194,
+            timezone=-8
+        )
+        
+        # Check DataFrame structure
+        assert isinstance(results, pd.DataFrame)
+        assert len(results) == len(sf_epw_data)
+        
+        # Check default orientations (N, E, S, W)
+        expected_columns = [
+            '0_direct', '0_sky_diffuse', '0_ground_diffuse', '0_global',
+            '90_direct', '90_sky_diffuse', '90_ground_diffuse', '90_global',
+            '180_direct', '180_sky_diffuse', '180_ground_diffuse', '180_global',
+            '270_direct', '270_sky_diffuse', '270_ground_diffuse', '270_global'
+        ]
+        assert list(results.columns) == expected_columns
+        
+        # Verify all values are non-negative
+        assert (results >= 0).all().all()
+        
+        # Verify global = direct + sky_diffuse + ground_diffuse
+        for orientation in [0, 90, 180, 270]:
+            global_col = f'{orientation}_global'
+            direct_col = f'{orientation}_direct'
+            sky_col = f'{orientation}_sky_diffuse'
+            ground_col = f'{orientation}_ground_diffuse'
+            
+            calculated_global = results[direct_col] + results[sky_col] + results[ground_col]
+            np.testing.assert_allclose(
+                results[global_col], 
+                calculated_global, 
+                rtol=1e-10,
+                err_msg=f"Global irradiation mismatch for {orientation}° orientation"
+            )
+    
+    def test_get_surface_irradiation_components_custom_orientations(self, sf_epw_data):
+        """Test surface irradiation components with custom orientations."""
+        custom_orientations = [45, 135, 225, 315]
+        
+        results = get_surface_irradiation_components(
+            sf_epw_data,
+            orientations=custom_orientations,
+            surface_tilt=45.0,  # Test non-vertical surface
+            albedo=0.3,
+            latitude=37.7749,
+            longitude=-122.4194,
+            timezone=-8,
+            sky_model='isotropic'
+        )
+        
+        # Check DataFrame structure
+        assert isinstance(results, pd.DataFrame)
+        assert len(results) == len(sf_epw_data)
+        
+        # Check custom orientations
+        expected_columns = []
+        for orientation in custom_orientations:
+            expected_columns.extend([
+                f'{orientation}_direct',
+                f'{orientation}_sky_diffuse', 
+                f'{orientation}_ground_diffuse',
+                f'{orientation}_global'
+            ])
+        assert list(results.columns) == expected_columns
+        
+        # Verify all values are non-negative
+        assert (results >= 0).all().all()
+    
+    def test_get_surface_irradiation_components_sky_models(self, sf_epw_data):
+        """Test different sky models produce different results."""
+        orientations = [180]  # Just south-facing
+        
+        # Test different sky models
+        sky_models = ['isotropic', 'haydavies', 'reindl', 'king', 'perez']
+        results_by_model = {}
+        
+        for model in sky_models:
+            try:
+                results = get_surface_irradiation_components(
+                    sf_epw_data,
+                    orientations=orientations,
+                    latitude=37.7749,
+                    longitude=-122.4194,
+                    timezone=-8,
+                    sky_model=model
+                )
+                results_by_model[model] = results['180_sky_diffuse']
+            except Exception as e:
+                print(f"Model {model} failed: {e}")
+                continue
+        
+        # Verify we got results for at least isotropic and haydavies
+        assert 'isotropic' in results_by_model
+        assert 'haydavies' in results_by_model
+        
+        # Different models should produce different sky diffuse values
+        if len(results_by_model) > 1:
+            model_names = list(results_by_model.keys())
+            for i in range(len(model_names) - 1):
+                model1 = model_names[i]
+                model2 = model_names[i + 1]
+                # Check that at least some values differ between models
+                diff = abs(results_by_model[model1] - results_by_model[model2])
+                assert diff.max() > 0.1, f"Sky models {model1} and {model2} produce identical results"
+
     def test_solar_calculations_performance(self, sf_epw_data):
         """Test performance of solar calculations."""
         import time
@@ -486,3 +598,10 @@ class TestSolarCalculations:
         angles_time = time.time() - start_time
 
         assert angles_time < 10.0, f"Solar angles calculation took {angles_time:.2f}s"
+        
+        # Test new components function performance
+        start_time = time.time()
+        components = get_surface_irradiation_components(sf_epw_data)
+        components_time = time.time() - start_time
+
+        assert components_time < 10.0, f"Components calculation took {components_time:.2f}s"
